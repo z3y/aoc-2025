@@ -5,10 +5,10 @@
 #include <vector>
 #include <algorithm>
 
-struct Range
+struct Event
 {
-    int64_t start;
-    int64_t end;
+    int64_t id;
+    int32_t sign;
 };
 
 int main()
@@ -22,9 +22,10 @@ int main()
 
     std::string line;
 
-    std::vector<Range> ranges;
     std::string delimiter = "-";
     int64_t count = 0;
+
+    std::vector<Event> events;
 
     while (std::getline(file, line))
     {
@@ -37,44 +38,41 @@ int main()
         std::string left = line.substr(0, delimiterIndex);
         std::string right = line.substr(delimiterIndex + 1);
 
-        Range r;
-        r.start = std::stoll(left);
-        r.end = std::stoll(right);
+        Event e0;
+        e0.id = std::stoll(left);
+        e0.sign = 1;
+        events.push_back(e0);
 
-        ranges.push_back(r);
-
-        // std::printf("start: %lld end: %lld\n", r.start, r.end);
+        Event e1;
+        e1.id = std::stoll(right) + 1;
+        e1.sign = -1;
+        events.push_back(e1);
     }
 
-    std::sort(ranges.begin(), ranges.end(),
-              [](const Range &a, const Range &b)
+    std::sort(events.begin(), events.end(),
+              [](const Event &a, const Event &b)
               {
-                  return a.start < b.start;
+                  return a.id < b.id;
               });
 
-    std::vector<Range> merged;
-    merged.push_back(ranges[0]);
+    int32_t depth = 0;
+    int64_t previousId = 0;
 
-    for (size_t i = 1; i < ranges.size(); i++)
+    for (size_t i = 0; i < events.size(); i++)
     {
-        Range &last = merged.back();
-        Range &current = ranges[i];
+        Event &e = events[i];
 
-        if (current.start <= last.end)
+        if (depth == 0)
         {
-            last.end = std::max(last.end, current.end);
+            previousId = e.id;
         }
-        else
+
+        depth += e.sign;
+
+        if (depth == 0)
         {
-            merged.push_back(current);
+            count += e.id - previousId;
         }
-    }
-
-    for (Range &r : merged)
-    {
-        int64_t range = (r.end - r.start) + 1i64;
-
-        count += range;
     }
 
     std::printf("count: %lld\n", count);
