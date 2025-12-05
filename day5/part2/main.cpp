@@ -3,6 +3,7 @@
 #include <string>
 #include <charconv>
 #include <vector>
+#include <algorithm>
 
 struct Range
 {
@@ -45,59 +46,32 @@ int main()
         // std::printf("start: %lld end: %lld\n", r.start, r.end);
     }
 
-    // remove overlaps
-    for (size_t i = 0; i < ranges.size(); i++)
+    std::sort(ranges.begin(), ranges.end(),
+              [](const Range &a, const Range &b)
+              {
+                  return a.start < b.start;
+              });
+
+    std::vector<Range> merged;
+    merged.push_back(ranges[0]);
+
+    for (size_t i = 1; i < ranges.size(); i++)
     {
-        Range &a = ranges[i];
+        Range &last = merged.back();
+        Range &current = ranges[i];
 
-        if (a.end == 0 && a.start == 0)
+        if (current.start <= last.end)
         {
-            continue;
+            last.end = std::max(last.end, current.end);
         }
-
-        for (size_t j = 0; j < ranges.size(); j++)
+        else
         {
-            if (i == j)
-            {
-                continue;
-            }
-
-            Range &b = ranges[j];
-
-            if (b.end == 0 && b.start == 0)
-            {
-                continue;
-            }
-
-            // b is after a
-            if (b.start > a.end)
-            {
-                continue;
-            }
-
-            // a is after b
-            if (a.start > b.end)
-            {
-                continue;
-            }
-
-            // merge
-            a.start = std::min(a.start, b.start);
-            a.end = std::max(a.end, b.end);
-            b.start = 0;
-            b.end = 0;
-
-            j = 0;
+            merged.push_back(current);
         }
     }
 
-    for (Range &r : ranges)
+    for (Range &r : merged)
     {
-        if (r.end == 0 && r.start == 0)
-        {
-            continue;
-        }
-
         int64_t range = (r.end - r.start) + 1i64;
 
         count += range;
