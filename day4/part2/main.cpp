@@ -3,8 +3,22 @@
 #include <string>
 #include <charconv>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#include <vector>
+
 constexpr int32_t kWidth = 140;
 constexpr int32_t kHeight = 140;
+
+void SaveAsPNG(const bool *data, int width, int height, const char *filename)
+{
+    std::vector<unsigned char> pixels(width * height);
+
+    for (int i = 0; i < width * height; i++)
+        pixels[i] = data[i] ? 255 : 0;
+
+    stbi_write_png(filename, width, height, 1, pixels.data(), width);
+}
 
 int32_t Get1DIndex(int32_t x, int32_t y)
 {
@@ -55,6 +69,7 @@ int main()
 
     int32_t accessible = 0;
 
+    int32_t iteration = 0;
     while (true)
     {
         bool rollsToRemove[kWidth * kHeight] = {};
@@ -84,26 +99,30 @@ int main()
                     {
                         accessible++;
                         rollsToRemove[Get1DIndex(x, y)] = true;
-                        std::printf("x");
+                        // std::printf("x");
                     }
                     else
                     {
-                        std::printf("@");
+                        // std::printf("@");
                     }
                 }
                 else
                 {
-                    std::printf(".");
+                    // std::printf(".");
                 }
             }
 
-            std::printf("\n");
+            // std::printf("\n");
         }
 
         if (previousAccessible == accessible)
         {
             break;
         }
+
+        std::string filename = "frame_" + std::to_string(iteration) + ".png";
+
+        SaveAsPNG(rolls, kWidth, kHeight, filename.c_str());
 
         std::printf("removing %d rolls\n", accessible - previousAccessible);
 
@@ -119,6 +138,8 @@ int main()
                 }
             }
         }
+
+        iteration++;
     }
 
     std::printf("accessible: %lld", accessible);
