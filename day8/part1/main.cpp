@@ -201,70 +201,35 @@ struct KdNode
         return nullptr;
     }
 
-    static void FindClosestRecursiveDown(float &closestDistance, std::shared_ptr<KdNode> &closestNode, const std::shared_ptr<KdNode> &root, Vec3 &point)
+    static void FindClosestRecursive(float &closestDistance, std::shared_ptr<KdNode> &closestNode, const std::shared_ptr<KdNode> &node, Vec3 &point)
     {
-        float d = Vec3::Distance(root->value, point);
-
-        if (d < closestDistance)
-        {
-            closestDistance = d;
-            closestNode = root;
-
-            // std::printf("minDist: %f\n", d);
-        }
-
-        size_t axisIndex = static_cast<size_t>(root->axis);
-
-        if (root->value[axisIndex] >= point[axisIndex])
-        {
-            if (root->childA)
-            {
-                FindClosestRecursiveDown(closestDistance, closestNode, root->childA, point);
-            }
-        }
-        else
-        {
-            if (root->childB)
-            {
-                FindClosestRecursiveDown(closestDistance, closestNode, root->childB, point);
-            }
-        }
-    }
-
-    static void FindClosestRecursiveUp(float &closestDistance, std::shared_ptr<KdNode> &closestNode, const std::shared_ptr<KdNode> &root, Vec3 &point)
-    {
-        std::shared_ptr<KdNode> parent = root->parent.lock();
-
-        if (!parent)
+        if (!node)
         {
             return;
         }
 
-        size_t axisIndex = static_cast<size_t>(parent->axis);
-
-        float distToAxis = std::abs(point[axisIndex] - parent->value[axisIndex]);
-        float distToAxisClosest = std::abs(closestNode->value[axisIndex] - parent->value[axisIndex]);
-
-        if (distToAxis < distToAxisClosest)
+        if (node->value != point)
         {
-            if (parent->value[axisIndex] < point[axisIndex])
+            float d = Vec3::Distance(node->value, point);
+            if (d < closestDistance)
             {
-                if (parent->childA)
-                {
-                    FindClosestRecursiveDown(closestDistance, closestNode, parent->childA, point);
-                }
-            }
-            else
-            {
-                if (parent->childB)
-                {
-                    FindClosestRecursiveDown(closestDistance, closestNode, parent->childB, point);
-                }
+                closestDistance = d;
+                closestNode = node;
             }
         }
-        else
+
+        size_t axisIndex = static_cast<size_t>(node->axis);
+
+        bool isLeft = point[axisIndex] < node->value[axisIndex];
+
+        auto primary = isLeft ? node->childA : node->childB;
+
+        FindClosestRecursive(closestDistance, closestNode, primary, point);
+
+        if (std::abs(point[axisIndex] - node->value[axisIndex]) < closestDistance)
         {
-            FindClosestRecursiveUp(closestDistance, closestNode, parent, point);
+            auto secondary = isLeft ? node->childB : node->childA;
+            FindClosestRecursive(closestDistance, closestNode, secondary, point);
         }
     }
 
@@ -273,8 +238,7 @@ struct KdNode
         float closestDistance = std::numeric_limits<float>::max();
         std::shared_ptr<KdNode> closestNode;
 
-        FindClosestRecursiveDown(closestDistance, closestNode, root, point);
-        FindClosestRecursiveUp(closestDistance, closestNode, closestNode, point);
+        FindClosestRecursive(closestDistance, closestNode, root, point);
 
         return closestNode;
     }
