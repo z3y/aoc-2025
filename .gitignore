@@ -4,3 +4,7 @@
 *.pdb
 *.ilk
 *.exe
+
+input.txt
+
+build/
