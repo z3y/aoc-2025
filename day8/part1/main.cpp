@@ -10,11 +10,11 @@
 
 struct Vec3
 {
-    int32_t x;
-    int32_t y;
-    int32_t z;
+    int64_t x;
+    int64_t y;
+    int64_t z;
 
-    Vec3(int32_t x_, int32_t y_, int32_t z_) : x(x_), y(y_), z(z_) {}
+    Vec3(int64_t x_, int64_t y_, int64_t z_) : x(x_), y(y_), z(z_) {}
     Vec3() : x(0), y(0), z(0) {}
 
     Vec3 operator-(const Vec3 &other) const
@@ -27,222 +27,76 @@ struct Vec3
         return Vec3(x + other.x, y + other.y, z + other.z);
     }
 
-    int32_t operator[](size_t i) const
-    {
-        if (i == 0)
-            return x;
-        else if (i == 1)
-            return y;
-        else
-            return z;
-    }
-
     bool operator==(const Vec3 &other) const
     {
         return x == other.x && y == other.y && z == other.z;
     }
 
-    static int32_t Dot(const Vec3 &a, const Vec3 &b)
+    static int64_t Dot(const Vec3 &a, const Vec3 &b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    static float Length(const Vec3 &a)
+    static int64_t DistanceInt(const Vec3 &a, const Vec3 &b)
     {
-        return std::sqrt(Dot(a, a));
-    }
-
-    static float Distance(const Vec3 &a, const Vec3 &b)
-    {
-        return Length(a - b);
+        Vec3 v = a - b;
+        return Dot(v, v);
     }
 
     std::string ToString()
     {
-        return std::format("(x: {0}, y: {1}, z: {2})", x, y, z);
+        return std::format("({0}, {1}, {2})", x, y, z);
     }
-
-    static const Vec3 zero;
 };
 
-const Vec3 Vec3::zero(0, 0, 0);
-
-enum class KdAxis
+struct Pair
 {
-    X = 0,
-    Y = 1,
-    Z = 2,
+    Vec3 a;
+    Vec3 b;
 };
 
-struct KdNode
+struct Circuit
 {
-    KdNode() = default;
-    std::weak_ptr<KdNode> parent;
-    std::shared_ptr<KdNode> childA;
-    std::shared_ptr<KdNode> childB;
-    KdAxis axis;
-    Vec3 value;
+    std::vector<Vec3> points;
+};
 
-    static Vec3 FindMedian(std::vector<Vec3> points, KdAxis axis)
+void MergeCircuits(std::vector<Circuit> &circuits)
+{
+    for (size_t i = 0; i < circuits.size(); i++)
     {
-        size_t axisIndex = static_cast<size_t>(axis);
-
-        std::sort(points.begin(), points.end(),
-                  [axisIndex](const Vec3 &a, const Vec3 &b)
-                  {
-                      return a[axisIndex] < b[axisIndex];
-                  });
-
-        size_t medianIndex = points.size() / 2;
-
-        return points[medianIndex];
-    };
-
-    static void SplitPoints(Vec3 &median, KdAxis axis, const std::vector<Vec3> &points, std::vector<Vec3> &a, std::vector<Vec3> &b)
-    {
-        for (size_t i = 0; i < points.size(); i++)
+        for (size_t j = i + 1; j < circuits.size();)
         {
-            Vec3 p = points[i];
+            bool shouldMerge = false;
 
-            if (p == median)
+            for (const Vec3 &p : circuits[i].points)
             {
-                continue;
+                if (std::find(circuits[j].points.begin(), circuits[j].points.end(), p) != circuits[j].points.end())
+                {
+                    shouldMerge = true;
+                    break;
+                }
             }
 
-            size_t axisIndex = static_cast<size_t>(axis);
-
-            if (p[axisIndex] < median[axisIndex])
+            if (shouldMerge)
             {
-                a.push_back(p);
+                for (const Vec3 &p : circuits[j].points)
+                {
+                    if (std::find(circuits[i].points.begin(), circuits[i].points.end(), p) == circuits[i].points.end())
+                    {
+                        circuits[i].points.push_back(p);
+                    }
+                }
+
+                // std::printf("merged %ld-%ld\n", circuits[i].points.size(), circuits[j].points.size());
+                circuits[j].points.clear();
             }
             else
             {
-                b.push_back(p);
+                ++j;
             }
         }
     }
-
-    static KdAxis NextAxis(KdAxis axis)
-    {
-        size_t axisIndex = static_cast<size_t>(axis);
-        axisIndex++;
-        axisIndex %= 3;
-        return static_cast<KdAxis>(axisIndex);
-    }
-
-    static void CreateTreeRecusive(std::shared_ptr<KdNode> &root, const std::vector<Vec3> &points)
-    {
-        if (points.size() == 1)
-        {
-            root->value = points[0];
-            return;
-        }
-
-        Vec3 median = FindMedian(points, root->axis);
-
-        // std::printf("median: %s\n", median.ToString().c_str());
-
-        std::vector<Vec3> a;
-        std::vector<Vec3> b;
-
-        SplitPoints(median, root->axis, points, a, b);
-
-        root->value = median;
-
-        KdAxis nextAxis = NextAxis(root->axis);
-
-        if (a.size() > 0)
-        {
-            root->childA = std::make_shared<KdNode>();
-            root->childA->axis = nextAxis;
-            root->childA->parent = root;
-
-            CreateTreeRecusive(root->childA, a);
-        }
-
-        if (b.size() > 0)
-        {
-            root->childB = std::make_shared<KdNode>();
-            root->childB->axis = nextAxis;
-            root->childB->parent = root;
-
-            CreateTreeRecusive(root->childB, b);
-        }
-    }
-
-    static std::shared_ptr<KdNode> CreateTree(const std::vector<Vec3> &points)
-    {
-        auto root = std::make_shared<KdNode>();
-        root->axis = KdAxis::X;
-
-        CreateTreeRecusive(root, points);
-
-        return root;
-    }
-
-    static std::shared_ptr<KdNode> FindNode(const std::shared_ptr<KdNode> &root, Vec3 point)
-    {
-        if (root->value == point)
-        {
-            return root;
-        }
-
-        size_t axisIndex = static_cast<size_t>(root->axis);
-
-        if (point[axisIndex] < root->value[axisIndex])
-        {
-            return FindNode(root->childA, point);
-        }
-        else
-        {
-            return FindNode(root->childB, point);
-        }
-
-        return nullptr;
-    }
-
-    static void FindClosestRecursive(float &closestDistance, std::shared_ptr<KdNode> &closestNode, const std::shared_ptr<KdNode> &node, Vec3 &point)
-    {
-        if (!node)
-        {
-            return;
-        }
-
-        if (node->value != point)
-        {
-            float d = Vec3::Distance(node->value, point);
-            if (d < closestDistance)
-            {
-                closestDistance = d;
-                closestNode = node;
-            }
-        }
-
-        size_t axisIndex = static_cast<size_t>(node->axis);
-
-        bool isLeft = point[axisIndex] < node->value[axisIndex];
-
-        auto primary = isLeft ? node->childA : node->childB;
-
-        FindClosestRecursive(closestDistance, closestNode, primary, point);
-
-        if (std::abs(point[axisIndex] - node->value[axisIndex]) < closestDistance)
-        {
-            auto secondary = isLeft ? node->childB : node->childA;
-            FindClosestRecursive(closestDistance, closestNode, secondary, point);
-        }
-    }
-
-    static std::shared_ptr<KdNode> FindClosest(const std::shared_ptr<KdNode> &root, Vec3 point)
-    {
-        float closestDistance = std::numeric_limits<float>::max();
-        std::shared_ptr<KdNode> closestNode;
-
-        FindClosestRecursive(closestDistance, closestNode, root, point);
-
-        return closestNode;
-    }
-};
+}
 
 int main()
 {
@@ -271,23 +125,83 @@ int main()
         p.y = std::stoi(part2.substr(0, split1));
         p.z = std::stoi(part2.substr(split1 + 1));
 
-        // std::printf("p: %s\n", p.ToString().c_str());
         points.push_back(p);
     }
 
-    auto kdTree = KdNode::CreateTree(points);
+    std::vector<Pair> pairs;
 
-    Vec3 test = Vec3(162, 817, 812);
+    for (size_t i = 0; i < points.size(); i++)
+    {
+        for (size_t j = i + 1; j < points.size(); j++)
+        {
+            Pair pair;
+            pair.a = points[i];
+            pair.b = points[j];
 
-    auto closest = KdNode::FindClosest(kdTree, test);
+            pairs.push_back(pair);
+        }
+    }
 
-    std::printf("closest: %s\n", closest->value.ToString().c_str());
+    std::sort(pairs.begin(), pairs.end(),
+              [](const Pair &lhs, const Pair &rhs)
+              {
+                  return Vec3::DistanceInt(lhs.a, lhs.b) < Vec3::DistanceInt(rhs.a, rhs.b);
+              });
 
-    // auto node = KdNode::FindNode(kdTree, Vec3(162,817,812));
+    std::vector<Circuit> circuits;
 
-    // std::printf("node: %s\n", node->value.ToString().c_str());
+    int32_t connectionsLeft = 1000;
+    for (size_t i = 0; i < connectionsLeft; i++)
+    {
+        Pair p = pairs[i];
 
-    std::printf("end\n");
+        bool circuitFound = false;
+        for (size_t j = 0; j < circuits.size(); j++)
+        {
+            auto &points = circuits[j].points;
+
+            bool aExists = std::find(points.begin(), points.end(), p.a) != points.end();
+            bool bExists = std::find(points.begin(), points.end(), p.b) != points.end();
+
+            if (aExists || bExists)
+            {
+                if (!aExists)
+                {
+                    circuits[j].points.push_back(p.a);
+                }
+                if (!bExists)
+                {
+                    circuits[j].points.push_back(p.b);
+                }
+
+                circuitFound = true;
+                MergeCircuits(circuits);
+
+                break;
+            }
+        }
+
+        if (!circuitFound)
+        {
+            Circuit newCircuit;
+            newCircuit.points.push_back(p.a);
+            newCircuit.points.push_back(p.b);
+            circuits.push_back(newCircuit);
+        }
+    }
+
+    std::sort(circuits.begin(), circuits.end(),
+              [](const Circuit &lhs, const Circuit &rhs)
+              {
+                  return rhs.points.size() < lhs.points.size();
+              });
+
+    int32_t product = circuits[0].points.size() * circuits[1].points.size() * circuits[2].points.size();
+
+    std::printf("0: %ld\n", circuits[0].points.size());
+    std::printf("1: %ld\n", circuits[1].points.size());
+    std::printf("2: %ld\n", circuits[2].points.size());
+    std::printf("product: %d\n", product);
 
     return 0;
 }
