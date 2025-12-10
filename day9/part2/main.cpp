@@ -85,8 +85,8 @@ bool EdgeIntersects(const Point &a, const Point &b, const Rect &r)
         {
             if (a.x > rectMin.x && a.x < rectMax.x)
             {
-                float minY = std::min(a.y, b.y);
-                float maxY = std::max(a.y, b.y);
+                int64_t minY = std::min(a.y, b.y);
+                int64_t maxY = std::max(a.y, b.y);
                 if (minY < rectMax.y && maxY > rectMin.y)
                 {
                     return true;
@@ -97,8 +97,8 @@ bool EdgeIntersects(const Point &a, const Point &b, const Rect &r)
         {
             if (a.y > rectMin.y && a.y < rectMax.y)
             {
-                float minX = std::min(a.x, b.x);
-                float maxX = std::max(a.x, b.x);
+                int64_t minX = std::min(a.x, b.x);
+                int64_t maxX = std::max(a.x, b.x);
                 if (minX < rectMax.x && maxX > rectMin.x)
                 {
                     return true;
