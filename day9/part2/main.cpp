@@ -153,9 +153,9 @@ int main()
             rectMax.y = std::max(r.a.y, r.b.y);
 
             bool intersects = false;
-            for (size_t i = 0; i + 1 < points.size(); i++)
+            for (size_t k = 0; k + 1 < points.size(); k++)
             {
-                if (EdgeIntersects(points[i], points[i + 1], r))
+                if (EdgeIntersects(points[k], points[k + 1], r))
                 {
                     intersects = true;
                     break;
