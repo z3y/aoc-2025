@@ -16,16 +16,17 @@ struct Machine
     std::vector<uint32_t> buttons;
 };
 
-bool NextCombination(std::vector<int> &indicies, int combinations, int elements)
+bool NextCombination(std::vector<int> &indicies, int elements)
 {
-    for (int i = combinations - 1; i >= 0; --i)
+    int combinations = indicies.size();
+    for (int i = combinations - 1; i >= 0; i--)
     {
         int maxVal = elements - (combinations - i);
         if (indicies[i] < maxVal)
         {
             indicies[i]++;
 
-            for (int j = i + 1; j < combinations; ++j)
+            for (int j = i + 1; j < combinations; j++)
             {
                 indicies[j] = indicies[j - 1] + 1;
             }
@@ -136,7 +137,7 @@ int main()
                     break;
                 }
 
-            } while (NextCombination(indicies, combinations, buttons.size()));
+            } while (NextCombination(indicies, buttons.size()));
 
             if (found)
             {
