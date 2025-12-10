@@ -8,12 +8,34 @@
 #include <algorithm>
 #include <format>
 #include <bitset>
+#include <numeric>
 
 struct Machine
 {
     uint32_t indicator;
     std::vector<uint32_t> buttons;
 };
+
+bool NextCombination(std::vector<int> &indicies, int combinations, int elements)
+{
+    for (int i = combinations - 1; i >= 0; --i)
+    {
+        int maxVal = elements - (combinations - i);
+        if (indicies[i] < maxVal)
+        {
+            indicies[i]++;
+
+            for (int j = i + 1; j < combinations; ++j)
+            {
+                indicies[j] = indicies[j - 1] + 1;
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 int main()
 {
@@ -82,38 +104,50 @@ int main()
     }
 
     size_t totalPresses = 0;
+
     for (auto &machine : machines)
     {
+        size_t iterations = 0;
         auto indicator = machine.indicator;
         auto buttons = machine.buttons;
-        size_t fewestPresses = 10;
 
-        std::sort(buttons.begin(), buttons.end());
-        do
+        size_t combinations = 1;
+
+        while (combinations < buttons.size())
         {
-            uint32_t result = 0;
+            bool found = false;
 
-            for (size_t i = 0; i < buttons.size(); i++)
+            std::vector<int> indicies(combinations);
+            std::iota(indicies.begin(), indicies.end(), 0);
+
+            do
             {
-                result ^= buttons[i];
+                iterations++;
+                uint32_t result = 0;
+
+                for (int i : indicies)
+                {
+                    result ^= buttons[i];
+                }
 
                 if (indicator == result)
                 {
-                    fewestPresses = std::min(fewestPresses, i + 1);
+                    found = true;
                     break;
                 }
-            }
 
-            if (fewestPresses == 1)
+            } while (NextCombination(indicies, combinations, buttons.size()));
+
+            if (found)
             {
-                // std::cout << "button:    " << std::bitset<32>(buttons[0]) << std::endl;
                 break;
             }
 
-        } while (std::next_permutation(buttons.begin(), buttons.end()));
+            combinations++;
+        }
 
-        totalPresses += fewestPresses;
-        std::cout << "indicator: " << std::bitset<32>(indicator) << " presses: " << fewestPresses << std::endl;
+        totalPresses += combinations;
+        std::cout << "indicator: " << std::bitset<32>(indicator) << " combinations: " << combinations << " iterations: " << iterations << std::endl;
     }
 
     std::printf("total presses: %ld\n", totalPresses);
