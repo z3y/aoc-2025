@@ -165,7 +165,6 @@ int main()
             if (EdgeIntersects(points[0], points[points.size() - 1], r))
             {
                 intersects = true;
-                break;
             }
 
             if (!intersects)
