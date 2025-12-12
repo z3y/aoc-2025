@@ -12,6 +12,7 @@ Set 1 if the button affects the joltage counter
 |     | 1   |     |     |     | 1   | 5   |
 | 1   | 1   |     | 1   |     |     | 7   |
 |     |     | 1   | 1   | 1   |     | 4   |
+
 Get to the row echelon form, all values below the diagonal need to be 0
 In this case just by swapping rows
 
@@ -21,6 +22,7 @@ In this case just by swapping rows
 |     | 1   |     |     |     | 1   | 5   |
 |     |     | 1   | 1   | 1   |     | 4   |
 |     |     |     |     | 1   | 1   | 3   |
+
 Equations for each row
 
 ```
